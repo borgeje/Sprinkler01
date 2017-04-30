@@ -5,9 +5,13 @@ void receive(const MyMessage &message) {
      Serial.println("This is an ack from gateway");
   }
   state = message.getBool();      // Change relay state
-  if (message.type == V_LIGHT && message.sensor == CHILD_ID_Relay_1) {
-       Serial.println("Drive Relay 1");
- //      digitalWrite(Relay_1, state);
+  if (message.type == V_LIGHT && message.sensor == CHILD_ID_Garage_Motor_1 && state == true) {
+       Serial.println("Drive Motor 1");
+//       digitalWrite(Garage_Motor_1, ON);
+       wait(DoorActivationPeriod);
+//       digitalWrite(Garage_Motor_1, OFF);
+       wait(500);
+       send(msgMotor1.set(false), true);    // After activating the door, move indicator to FALSE again
 
        // Write some debug info
        Serial.print("Incoming change for sensor:");
@@ -15,15 +19,22 @@ void receive(const MyMessage &message) {
        Serial.print(", New status: ");
        Serial.println(state);
    } 
-   else if (message.type == V_LIGHT && message.sensor == CHILD_ID_Relay_2) {
-       Serial.println("Drive Relay 2");
-       digitalWrite(Relay_2, state);
+   else if (message.type == V_LIGHT && message.sensor == CHILD_ID_Garage_Motor_2 && state == true) {
+       Serial.println("Drive Motor 2");
+//       digitalWrite(Garage_Motor_2, ON);
+       wait(DoorActivationPeriod);
+//       digitalWrite(Garage_Motor_2, OFF);
+       wait(500);
+       send(msgMotor2.set(false), true);    // After activating the door, move indicator to FALSE again
        // Write some debug info
        Serial.print("Incoming change for sensor:");
        Serial.print(message.sensor);
        Serial.print(", New status: ");
        Serial.println(state);
         }
-     else  {};
+     else if (message.type == V_DIMMER && message.sensor == CHILD_ID_PWM) {
+          PWMvar = message.getInt();
+           }
+        else {};
 
 }
