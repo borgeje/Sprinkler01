@@ -57,6 +57,7 @@
 //Libraries, some are project specific
 #include <SPI.h>
 #include <Wire.h>
+#include <Time.h>
 #include <TimeLib.h>
 #include <MySensors.h>
 #include <Bounce2.h>
@@ -157,6 +158,7 @@ bool oldPresence;
 void setup()  
 {  
   Serial.println("Running Setup");
+  
   // Doors setup input pins and debounce function
 //  pinMode(Door_Sensor_1,INPUT);                 // Setup Doors as INputs
 //  digitalWrite(Door_Sensor_1,HIGH);             // Activate internal pull-up
@@ -171,6 +173,8 @@ void setup()
   dht.setup(DHT_DATA_PIN); // set data pin of DHT sensos
   wait(2000);
   digitalWrite(A1, OFF);
+  requestTime();
+  DEBUG_PRINTLN(F("Requesting time from Gateway:"));
 }
 
 

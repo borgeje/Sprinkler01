@@ -38,3 +38,36 @@ void receive(const MyMessage &message) {
         else {};
 
 }
+
+
+void receiveTime(time_t newTime)
+{
+  DEBUG_PRINTLN(F("Time value received and updated..."));
+  int lastSecond = second();
+  int lastMinute = minute();
+  int lastHour = hour();
+  setTime(newTime);
+  if (((second() != lastSecond) || (minute() != lastMinute) || (hour() != lastHour)) || showTime)
+  {
+    DEBUG_PRINTLN(F("Clock updated...."));
+    DEBUG_PRINT(F("Sensor's time currently set to:"));
+    DEBUG_PRINT(hourFormat12() < 10 ? F(" 0") : F(" "));
+    DEBUG_PRINT(hourFormat12());
+    DEBUG_PRINT(minute() < 10 ? F(":0") : F(":"));
+    DEBUG_PRINT(minute());
+    DEBUG_PRINTLN(isAM() ? F("am") : F("pm"));
+    DEBUG_PRINT(month());
+    DEBUG_PRINT(F("/"));
+    DEBUG_PRINT(day());
+    DEBUG_PRINT(F("/"));
+    DEBUG_PRINTLN(year());
+    DEBUG_PRINTLN(dayOfWeek[weekday()]);
+    showTime = false;
+  }
+  else
+  {
+    DEBUG_PRINTLN(F("Sensor's time did NOT need adjustment greater than 1 second."));
+  }
+  clockUpdating = false;
+}
+
