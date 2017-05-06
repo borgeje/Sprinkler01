@@ -42,7 +42,16 @@
 //#ifndef MY_RF24_PA_LEVEL
 // #define MY_RF24_PA_LEVEL RF24_PA_HIGH
 //#endif
-
+//
+#ifdef DEBUG_ON
+#define DEBUG_PRINT(x)   Serial.print(x)
+#define DEBUG_PRINTLN(x) Serial.println(x)
+#else
+#define DEBUG_PRINT(x)
+#define DEBUG_PRINTLN(x)
+#define SERIAL_START(x)
+#endif
+//
 
 
 //Libraries, some are project specific
