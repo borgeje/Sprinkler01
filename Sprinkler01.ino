@@ -42,7 +42,7 @@
 //#ifndef MY_RF24_PA_LEVEL
 // #define MY_RF24_PA_LEVEL RF24_PA_HIGH
 //#endif
-//
+#define DEBUG_ON   // comment out to supress serial monitor output
 #ifdef DEBUG_ON
 #define DEBUG_PRINT(x)   Serial.print(x)
 #define DEBUG_PRINTLN(x) Serial.println(x)
@@ -83,15 +83,7 @@
 #define VALVE_TIMES_RELOAD 300000UL  // Change this (in milliseconds) for how often to update all valves data from the controller (Loops at value/number valves)
                                      // ie: 300000 for 8 valves produces requests 37.5seconds with all valves updated every 5mins 
 LiquidCrystal_I2C lcd(0x3F,20,4);  // set the LCD address to 0x27 for a 16 chars and 2 line display
-#define DEBUG_ON   // comment out to supress serial monitor output
-#ifdef DEBUG_ON
-#define DEBUG_PRINT(x)   Serial.print(x)
-#define DEBUG_PRINTLN(x) Serial.println(x)
-#else
-#define DEBUG_PRINT(x)
-#define DEBUG_PRINTLN(x)
-#define SERIAL_START(x)
-#endif
+
 
 //LCD RELATED
 byte raindrop[8] = {0x4, 0x4, 0xA, 0xA, 0x11, 0xE, 0x0,}; // fetching Valve Data indicator
@@ -154,11 +146,10 @@ bool oldPresence;
 
 
 
-
+/***********************/
 void setup()  
 {  
-  Serial.println("Running Setup");
-  
+  DEBUG_PRINTLN(F("Running Setup.."));
   // Doors setup input pins and debounce function
 //  pinMode(Door_Sensor_1,INPUT);                 // Setup Doors as INputs
 //  digitalWrite(Door_Sensor_1,HIGH);             // Activate internal pull-up
@@ -173,8 +164,32 @@ void setup()
   dht.setup(DHT_DATA_PIN); // set data pin of DHT sensos
   wait(2000);
   digitalWrite(A1, OFF);
-  requestTime();
-  DEBUG_PRINTLN(F("Requesting time from Gateway:"));
+   //
+  lcd.setCursor(0, 0);
+  lcd.print(F(" Syncing Time  "));
+  lcd.setCursor(15, 0);
+  lcd.write(byte(0));
+  lcd.setCursor(0, 1);
+  int clockCounter = 0;
+  while (timeStatus() == timeNotSet && clockCounter < 21)
+  {
+    requestTime();
+    DEBUG_PRINTLN(F("Requesting time from Gateway:"));
+    wait(1000);
+    lcd.print(".");
+    clockCounter++;
+    if (clockCounter > 16)
+    {
+      DEBUG_PRINTLN(F("Failed initial clock synchronization!"));
+      lcd.clear();
+      lcd.print(F("  Failed Clock  "));
+      lcd.setCursor(0, 1);
+      lcd.print(F(" Syncronization "));
+      wait(2000);
+      break;
+    }
+  }
+  //
 }
 
 
