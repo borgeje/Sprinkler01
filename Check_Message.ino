@@ -4,7 +4,7 @@ void receive(const MyMessage &message) {
   if (message.isAck()) {
      Serial.println("This is an ack from gateway");
   }
-  state = message.getBool();      // Change relay state
+  Rstate = message.getBool();      // Change relay state
   if (message.type == V_LIGHT && message.sensor == CHILD_ID_Garage_Motor_1 && state == true) {
        Serial.println("Drive Motor 1");
 //       digitalWrite(Garage_Motor_1, ON);
@@ -49,8 +49,8 @@ void receiveTime(time_t newTime)
   int lastMinute = minute();
   int lastHour = hour();
   setTime(newTime);
-  if (((second() != lastSecond) || (minute() != lastMinute) || (hour() != lastHour)) || showTime)
-  {
+ // if (((second() != lastSecond) || (minute() != lastMinute) || (hour() != lastHour)) || showTime)
+//  {
     DEBUG_PRINTLN(F("Clock updated...."));
     DEBUG_PRINT(F("Sensor's time currently set to:"));
     DEBUG_PRINT(hourFormat12() < 10 ? F(" 0") : F(" "));
@@ -63,13 +63,13 @@ void receiveTime(time_t newTime)
     DEBUG_PRINT(day());
     DEBUG_PRINT(F("/"));
     DEBUG_PRINTLN(year());
-    DEBUG_PRINTLN(dayOfWeek[weekday()]);
-    showTime = false;
-  }
-  else
-  {
+//    DEBUG_PRINTLN(dayOfWeek[weekday()]);
+ //   showTime = false;
+  //}
+  //else
+  //{
     DEBUG_PRINTLN(F("Sensor's time did NOT need adjustment greater than 1 second."));
-  }
-  clockUpdating = false;
+ // }
+//  clockUpdating = false;
 }
 

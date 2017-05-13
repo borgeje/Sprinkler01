@@ -13,6 +13,7 @@
  *     D7 - DHT sensor data pin
  *     D6 - Switch1 = Menu/back
  *     D8 - Switch2 = Arrow down
+ *     A6 - ALARM door for basement external door i have
  *     A7 - Switch3 = ENTER
  *     A4 - SDA line for LCD display I2C
  *     A5 - SCL line for LCD display I2C
@@ -35,7 +36,7 @@
 ************************************************************
  */ 
 
-// Basic Configuration - alwyas keep
+// Basic Configuration - always keep for MYSENSOR projects
 #define MY_DEBUG                  // Enable debug prints to serial monitor
 #define MY_RADIO_NRF24            // Enable and select radio type attached
 #define MY_REPEATER_FEATURE       // Enabled repeater feature for this node
@@ -54,6 +55,8 @@
 //
 
 
+
+
 //Libraries, some are project specific
 #include <SPI.h>
 #include <Wire.h>
@@ -61,63 +64,105 @@
 #include <TimeLib.h>
 #include <MySensors.h>
 #include <Bounce2.h>
-#include <DHT.h>                  // library for temp and humidity sensor
+#include <DHT.h>                          // library for temp and humidity sensor
 #include <LiquidCrystal_I2C.h>
 
 
 // Project Pins
-#define Zone1 2          // Relay setting for Zone 1 to 4
+#define Zone1 2                           // Relay setting for Zone 1 to 4
 #define Zone2 3
 #define Zone3 4
 #define Zone4 5
 #define Menu_key 6
-#define DHT_DATA_PIN 7            // Set this to the pin you connected the DHT's data pin to
+#define DHT_DATA_PIN 7                    // Set this to the pin you connected the DHT's data pin to
 #define Arrow_key 8
 #define Enter_Key A7
+#define External_Door A6
+
+
 
 // Project DEFINITIONS
 #define SKETCH_NAME "MySprinkler - Joao Borges"
 #define SKETCH_VERSION "1.0"
-#define NUMBER_OF_VALVES 3        // Change this to set your valve count up to 16.
-#define VALVE_RESET_TIME 7500UL   // Change this (in milliseconds) for the time you need your valves to hydraulically reset and change state
-#define VALVE_TIMES_RELOAD 300000UL  // Change this (in milliseconds) for how often to update all valves data from the controller (Loops at value/number valves)
-                                     // ie: 300000 for 8 valves produces requests 37.5seconds with all valves updated every 5mins 
-LiquidCrystal_I2C lcd(0x3F,20,4);  // set the LCD address to 0x27 for a 16 chars and 2 line display
-
-
-//LCD RELATED
-byte raindrop[8] = {0x4, 0x4, 0xA, 0xA, 0x11, 0xE, 0x0,}; // fetching Valve Data indicator
-
-
-
-// Node Childs (all individual iDs for each IO)
-#define CHILD_ID_SPRINKLER 0
-#define CHILD_ID_TEMP 1            // iD for temperature reporting
-#define CHILD_ID_HUM 2             // iD for humidity reporting
-#define CHILD_ID_Presence 3
-#define CHILD_ID_PWM 4
-#define CHILD_ID_Door_Sensor_1 5
-#define CHILD_ID_Door_Sensor_2 6
-#define CHILD_ID_Door_Sensor_3 7
-#define CHILD_ID_Garage_Motor_1 8
-#define CHILD_ID_Garage_Motor_2 9
+#define NUMBER_OF_VALVES 3            // Change this to set your valve count up to 16.
+#define VALVE_RESET_TIME 7500UL       // Change this (in milliseconds) for the time you need your valves to hydraulically reset and change state
+#define VALVE_TIMES_RELOAD 300000UL   // Change this (in milliseconds) for how often to update all valves data from the controller (Loops at value/number valves)
+                                      // ie: 300000 for 8 valves produces requests 37.5seconds with all valves updated every 5mins 
+                                      // Node Childs (all individual iDs for each IO)
+#define CHILD_ID_SPRINKLER  0
+#define CHILD_ID_Zone_1     1
+#define CHILD_ID_Zone_2     2
+#define CHILD_ID_Zone_3     3
+#define CHILD_ID_TEMP       4            // iD for temperature reporting
+#define CHILD_ID_HUM        5            // iD for humidity reporting
+#define CHILD_ID_Door       6
 
 // Other Defines
 #define ON 0
 #define OFF 1
-#define DETACH_DELAY 900          // Tune this to let your movement finish before detaching the servo
-#define SENSOR_TEMP_OFFSET 0      // Set this offset if the sensor has a permanent small offset to the real temperatures
+
+
+//LCD RELATED
+LiquidCrystal_I2C lcd(0x3F,20,4);  // set the LCD address to 0x27 for a 16 chars and 2 line display
+byte Bar1[8] = {
+  B10000,
+  B01000,
+  B01000,
+  B00100,
+  B00100,
+  B00010,
+  B00010,
+  B00001
+};
+byte Bar2[8] = {
+  B00001,
+  B00010,
+  B00010,
+  B00100,
+  B00100,
+  B01000,
+  B01000,
+  B10000
+};
+byte ParBar[8] = {
+  B00000,
+  B00000,
+  B00000,
+  B11111,
+  B00000,
+  B00000,
+  B00000,
+  B00000
+};
+byte VertBar[8] = {
+  B00100,
+  B00100,
+  B00100,
+  B00100,
+  B00100,
+  B00100,
+  B00100,
+  B00100
+};
+byte face[8] = {  0x01, 0x03, 0x02, 0x06, 0x16, 0x1C, 0x0C, 0x08};
+byte FifteenMin[8] = {0x0, 0xe, 0x15, 0x17, 0x11, 0xe, 0x0}; // fetching time indicator
+byte raindrop[8] = {0x4, 0x4, 0xA, 0xA, 0x11, 0xE, 0x0,}; // fetching Valve Data indicator
+typedef enum {
+  STAND_BY_ALL_OFF, RUN_SINGLE_ZONE, RUN_ALL_ZONES, CYCLE_COMPLETE, ZONE_SELECT_MENU, CANCELLING
+}  SprinklerStates;
+SprinklerStates state = STAND_BY_ALL_OFF;   //define variable called state, of the type SprinklerStates
+SprinklerStates lastState;                  //define variable called lastState, of the type SprinklerStates
+byte MainMenu_Current_State = 0;       // 0 is Run all, 1= zone1, 2=zone2, 3= zone3, 4 = config
+
+
 
 // Some additional definitons and INSTANCES creation
-MyMessage msgTemp(CHILD_ID_TEMP, V_TEMP);
-MyMessage msgHum(CHILD_ID_HUM, V_HUM);
-MyMessage msgMotion(CHILD_ID_Presence, V_TRIPPED);
-MyMessage msgPWM(CHILD_ID_PWM, V_DIMMER);
-MyMessage msgDoor1(CHILD_ID_Door_Sensor_1, V_TRIPPED);
-MyMessage msgDoor2(CHILD_ID_Door_Sensor_2, V_TRIPPED);
-MyMessage msgDoor3(CHILD_ID_Door_Sensor_3, V_TRIPPED);
-MyMessage msgMotor1(CHILD_ID_Garage_Motor_1, V_LIGHT);
-MyMessage msgMotor2(CHILD_ID_Garage_Motor_2, V_LIGHT);
+MyMessage msgTemp(CHILD_ID_TEMP,  V_TEMP);
+MyMessage msgHum(CHILD_ID_HUM,    V_HUM);
+MyMessage msgZone1(CHILD_ID_Zone_1, V_LIGHT);
+MyMessage msgZone2(CHILD_ID_Zone_2, V_LIGHT);
+MyMessage msgZone3(CHILD_ID_Zone_3, V_LIGHT);
+MyMessage msgDoor1(CHILD_ID_Door, V_TRIPPED);
 
 Bounce Debounce_Door1 = Bounce();  // create instance of debounced button
 Bounce Debounce_Door2 = Bounce();  // create instance of debounced button
@@ -137,7 +182,7 @@ float lastHum;                    // variable to hold last read humidity
 uint8_t nNoUpdatesTemp;           // keeping track of # of reqdings 
 uint8_t nNoUpdatesHum;
 bool metric = true;               // metric or imperial?
-bool state;
+bool Rstate;
 const long DoorActivationPeriod = 600; // [ms]
 int PWMvar = 100;
 bool oldPresence;
@@ -198,19 +243,18 @@ void setup()
 
 
 
+
+
 void presentation()  
 {
-  sendSketchInfo("Joao_Garage_Sensors", "1.2");   // Send the sketch version information to the gateway and Controller
+  sendSketchInfo(SKETCH_NAME, SKETCH_VERSION);   // Send the sketch version information to the gateway and Controller
   Serial.println("Presentation function..");
   present(CHILD_ID_TEMP, S_TEMP);         // Registar Temperature to gw
   present(CHILD_ID_HUM, S_HUM);           // Register Humidity to gw
-  present(CHILD_ID_Door_Sensor_1, S_DOOR);      // Register all sensors to gw (they will be created as child devices)
-  present(CHILD_ID_Door_Sensor_2, S_DOOR);      // Register all sensors to gw (they will be created as child devices)
-  present(CHILD_ID_Door_Sensor_3, S_DOOR);      // Register all sensors to gw (they will be created as child devices)
-  present(CHILD_ID_PWM, S_DIMMER);              // Register PWM output
-  present(CHILD_ID_Presence, S_MOTION);      // Register Motor doors
-  present(CHILD_ID_Garage_Motor_1, S_BINARY);      // Register Motor doors
-  present(CHILD_ID_Garage_Motor_2, S_BINARY);      // Register Motor doors  
+  present(CHILD_ID_Door, S_DOOR);      // Register all sensors to gw (they will be created as child devices)
+  present(CHILD_ID_Zone_1, S_BINARY);      // Register all sensors to gw (they will be created as child devices)
+  present(CHILD_ID_Zone_2, S_BINARY);      // Register all sensors to gw (they will be created as child devices)
+  present(CHILD_ID_Zone_3, S_BINARY);              // Register PWM output
 //  metric = getConfig().isMetric;          // get configuration from the controller on UNIT system
 
 }
@@ -242,7 +286,7 @@ void loop()
   oldDoorValue1 = value;
 
   int value2 = Debounce_Door2.read();   //Get the update value
-  if (value2 != oldDoorValue2) {
+/*  if (value2 != oldDoorValue2) {
      send(msgDoor2.set(value2?true:false), true); // Send new state and request ack back
      Serial.print("Door 2:");
      Serial.println(value2);
@@ -268,7 +312,7 @@ void loop()
   //    send(msgMotion.set(false)); // Send new state and request ack back
  //     analogWrite(PWM, 0);
 //    } else{};
-//    oldPresence = value4;
+//    oldPresence = value4;*/
   ReadTemp(); 
   wait(2000);
 } 
