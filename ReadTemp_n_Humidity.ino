@@ -11,7 +11,7 @@ void ReadTemp()
     }
     // Reset no updates counter
     nNoUpdatesTemp = 0;
-    temperature += SENSOR_TEMP_OFFSET;
+    //temperature += SENSOR_TEMP_OFFSET;
     send(msgTemp.set(temperature, 1));
 
     #ifdef MY_DEBUG

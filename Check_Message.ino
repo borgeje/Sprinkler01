@@ -4,7 +4,8 @@ void receive(const MyMessage &message) {
   if (message.isAck()) {
      Serial.println("This is an ack from gateway");
   }
-  Rstate = message.getBool();      // Change relay state
+  Rstate = message.getBool();      // Change relay state 
+  /*
   if (message.type == V_LIGHT && message.sensor == CHILD_ID_Garage_Motor_1 && state == true) {
        Serial.println("Drive Motor 1");
 //       digitalWrite(Garage_Motor_1, ON);
@@ -35,7 +36,7 @@ void receive(const MyMessage &message) {
      else if (message.type == V_DIMMER && message.sensor == CHILD_ID_PWM) {
           PWMvar = message.getInt();
            }
-        else {};
+        else {};*/
 
 }
 

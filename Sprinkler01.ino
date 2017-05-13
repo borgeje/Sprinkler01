@@ -14,9 +14,14 @@
  *     D6 - Switch1 = Menu/back
  *     D8 - Switch2 = Arrow down
  *     A6 - ALARM door for basement external door i have
- *     A7 - Switch3 = ENTER
+ *     A0 - Switch3 = ENTER
  *     A4 - SDA line for LCD display I2C
  *     A5 - SCL line for LCD display I2C
+ *     D9 - 
+ *     D10- 
+ *     D11- 
+ *     D12- 
+ *     D13- 
  *     Radio normally connected as per Mysensors.org
  *     
  ********************
@@ -40,9 +45,6 @@
 #define MY_DEBUG                  // Enable debug prints to serial monitor
 #define MY_RADIO_NRF24            // Enable and select radio type attached
 #define MY_REPEATER_FEATURE       // Enabled repeater feature for this node
-//#ifndef MY_RF24_PA_LEVEL
-// #define MY_RF24_PA_LEVEL RF24_PA_HIGH
-//#endif
 #define DEBUG_ON   // comment out to supress serial monitor output
 #ifdef DEBUG_ON
 #define DEBUG_PRINT(x)   Serial.print(x)
@@ -76,7 +78,7 @@
 #define Menu_key 6
 #define DHT_DATA_PIN 7                    // Set this to the pin you connected the DHT's data pin to
 #define Arrow_key 8
-#define Enter_Key A7
+#define Enter_Key A0
 #define External_Door A6
 
 
@@ -157,59 +159,102 @@ byte MainMenu_Current_State = 0;       // 0 is Run all, 1= zone1, 2=zone2, 3= zo
 
 
 // Some additional definitons and INSTANCES creation
-MyMessage msgTemp(CHILD_ID_TEMP,  V_TEMP);
-MyMessage msgHum(CHILD_ID_HUM,    V_HUM);
+MyMessage msgTemp(CHILD_ID_TEMP,    V_TEMP);
+MyMessage msgHum(CHILD_ID_HUM,      V_HUM);
 MyMessage msgZone1(CHILD_ID_Zone_1, V_LIGHT);
 MyMessage msgZone2(CHILD_ID_Zone_2, V_LIGHT);
 MyMessage msgZone3(CHILD_ID_Zone_3, V_LIGHT);
-MyMessage msgDoor1(CHILD_ID_Door, V_TRIPPED);
+MyMessage msgDoor1(CHILD_ID_Door,   V_TRIPPED);
 
 Bounce Debounce_Door1 = Bounce();  // create instance of debounced button
-Bounce Debounce_Door2 = Bounce();  // create instance of debounced button
-Bounce Debounce_Door3 = Bounce();  // create instance of debounced button
-Bounce Debounce_PRES = Bounce();
+Bounce Debounce_Arrow  = Bounce();  // create instance of debounced button
+Bounce Debounce_Enter = Bounce();  // create instance of debounced button
 DHT dht;                          // Creating instance of DHT
 
-//VARIABLES
+
+// ************** VARIABLES *****************
+// TEMP, DOOR and SWITCHES RELATED<<<<<<<<<<<
 int oldDoorValue1=0;
 int oldDoorValue2=0;
 int oldDoorValue3=0;
-int a = 0;                        //intermediate variable for servo backandforth math // Servo moves around 90                       
-static const uint64_t UPDATE_INTERVAL = 15000; // Sleep time between sensor updates (in milliseconds) // Must be >1000ms for DHT22 and >2000ms for DHT11
 static const uint8_t FORCE_UPDATE_N_READS = 3; // Force sending an update of the temperature after n sensor reads
 float lastTemp;                   // variable to hold last read temperature
 float lastHum;                    // variable to hold last read humidity
-uint8_t nNoUpdatesTemp;           // keeping track of # of reqdings 
+uint8_t nNoUpdatesTemp;           // keeping track of # of readings 
 uint8_t nNoUpdatesHum;
 bool metric = true;               // metric or imperial?
-bool Rstate;
-const long DoorActivationPeriod = 600; // [ms]
-int PWMvar = 100;
-bool oldPresence;
+bool Rstate;                      // RELAY STATE 
+//const long DoorActivationPeriod = 600; // [ms]
+
+// LCD RELATED & SPRINKLER OPERATION<<<<<<<<<<<<<<<<<<<
+int Clock_Animation_time=200;
+unsigned long nowMillis;
+unsigned long startMillis;
+unsigned long timeRemaining;          // Time remaining for a given valve
+unsigned long timeRemainingMinutes;   // Time remaining in minutes
+unsigned long timeRemainingSeconds;   // Time remaining seconds
+bool DOWNbuttonPushed = false;
+bool ENTERbuttonPushed = false;
+
+
+//Flashmap
+unsigned long SINGLEVALVETIME=10000;   // 10 minutes * 60 *1000 time in milliseconds
+unsigned long Zone1TimeAuto = 11000;
+unsigned long Zone2TimeAuto = 9000;
+unsigned long Zone3TimeAuto = 5000;
+int RunValve = 1;
+
+//others
+#define VALVE_RESET_TIME 7500UL 
 
 
 
 
 
-/***********************/
+
+
+/***********************************************************/
+/***********************************************************/
+/***********************************************************/
+/***********************************************************/
 void setup()  
 {  
-  DEBUG_PRINTLN(F("Running Setup.."));
-  // Doors setup input pins and debounce function
-//  pinMode(Door_Sensor_1,INPUT);                 // Setup Doors as INputs
-//  digitalWrite(Door_Sensor_1,HIGH);             // Activate internal pull-up
-//  Debounce_Door1.attach(Door_Sensor_1);           // After setting up the button, setup debouncer
-//  Debounce_Door1.interval(1);
- 
-  // Digital outputs pin
-//  digitalWrite(Garage_Motor_1, OFF);               // Make sure Motor is off at startup
-//  pinMode(Garage_Motor_1, OUTPUT);                 // Then set Motor pins in output mode
-  digitalWrite(A1, ON);
-  pinMode(A1, OUTPUT);           // This pin is just to turn an LED to show we have been able to enter SETUP 
-  dht.setup(DHT_DATA_PIN); // set data pin of DHT sensos
-  wait(2000);
-  digitalWrite(A1, OFF);
-   //
+  DEBUG_PRINTLN(F("Running Setup.."));          //...................
+  // INPUTS //
+  pinMode(External_Door,INPUT);                 // Setup Doors as INPUTS
+  digitalWrite(External_Door,HIGH);             // Activate internal pull-up
+  Debounce_Door1.attach(External_Door);         // After setting up the button, setup debouncer
+  Debounce_Door1.interval(1);
+  pinMode(Enter_Key,INPUT);                 // Setup Doors as INputs
+  digitalWrite(Enter_Key,HIGH);             // Activate internal pull-up
+  Debounce_Enter.attach(Enter_Key);         // After setting up the button, setup debouncer
+  Debounce_Enter.interval(1);
+  pinMode(Arrow_key,INPUT);                 // Setup Doors as INputs
+  digitalWrite(Arrow_key,HIGH);             // Activate internal pull-up
+  Debounce_Arrow.attach(Arrow_key);         // After setting up the button, setup debouncer
+  Debounce_Arrow.interval(1);
+
+  // OUTPUTS  //
+  digitalWrite(Zone1, OFF);                 // Make sure Motor is off at startup
+  pinMode(Zone1, OUTPUT);                   // Then set Motor pins in output mode
+  digitalWrite(Zone2, OFF);                 // Make sure Motor is off at startup
+  pinMode(Zone2, OUTPUT);                   // Then set Motor pins in output mode
+  digitalWrite(Zone3, OFF);                 // Make sure Motor is off at startup
+  pinMode(Zone3, OUTPUT);                   // Then set Motor pins in output mode
+  dht.setup(DHT_DATA_PIN);                  // set data pin of DHT sensors
+  
+  //LCD  //
+  lcd.init();                       // initialize the LCD
+  lcd.createChar(0, Bar1);          // Create custom character in LCD
+  lcd.createChar(1, Bar2);          // Create custom character in LCD
+  lcd.createChar(2, ParBar);        // Create custom character in LCD
+  lcd.createChar(3, VertBar);       // Create custom character in LCD
+  lcd.createChar(4, FifteenMin);    // Create custom character in LCD
+  lcd.createChar(5, raindrop);      // Create custom character in LCD
+  lcd.createChar(6, face);
+  lcd.backlight();                  // Turn on Back light (to tur off is lcd.noBacklight()
+
+  // GET CLOCK FROM GATEWAY
   lcd.setCursor(0, 0);
   lcd.print(F(" Syncing Time  "));
   lcd.setCursor(15, 0);
@@ -234,7 +279,21 @@ void setup()
       break;
     }
   }
-  //
+  //////// MAIN INTRO SCREEN, print and stay 2s /////////
+  fastClear();
+  lcd.setCursor(0,0);
+  lcd.print("Sprinkler    ");
+  lcd.print(SKETCH_VERSION);
+  lcd.setCursor(2,1);
+  lcd.print("My Sensors System");
+  lcd.setCursor(0,2);
+  lcd.print("              ");
+  lcd.setCursor(2,3);
+  lcd.print("Joao Borges");
+  delay(2000);                //////// REPLACE WITH WAIT WHEN INTEGRATING WITH MYSENSORS
+  lcd.init();
+  // TURN RELAYS OFF
+  MainMenu(MainMenu_Current_State);
 }
 
 
@@ -264,19 +323,25 @@ void presentation()
 
 
 
-/*
-*  Example on how to asynchronously check for new messages from gw
-*/
+
+
+/***************
+ * MAIN LOOP
+ * 
+ * 
+ * Asynchronously check for new messages from gw
+*****************/
 void loop() 
 {
+//  DEBUG_PRINT("Main loop at node: ");
+//  DEBUG_PRINTLN(getNodeId());
 
-  Serial.print("Main loop at node: ");
-  Serial.println(getNodeId());
   Debounce_Door1.update();
-  Debounce_Door2.update();
-  Debounce_Door3.update();
-//  Debounce_PRES.update();
+  Debounce_Enter.update();
+  Debounce_Arrow.update();
 
+  LCDMainLoop();
+  ReadTemp(); 
   int value = Debounce_Door1.read();   //Get the update value
   if (value != oldDoorValue1) {
      send(msgDoor1.set(value?true:false), true); // Send new state and request ack back
@@ -285,7 +350,7 @@ void loop()
     }
   oldDoorValue1 = value;
 
-  int value2 = Debounce_Door2.read();   //Get the update value
+//  int value2 = Debounce_Door2.read();   //Get the update value
 /*  if (value2 != oldDoorValue2) {
      send(msgDoor2.set(value2?true:false), true); // Send new state and request ack back
      Serial.print("Door 2:");
