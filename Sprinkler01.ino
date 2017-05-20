@@ -13,7 +13,7 @@
  *     D7 - DHT sensor data pin
  *     D6 - Switch1 = Menu/back
  *     D8 - Switch2 = Arrow down
- *     A6 - ALARM door for basement external door i have
+ *     D0w - ALARM door for basement external door i have
  *     A0 - Switch3 = ENTER
  *     A4 - SDA line for LCD display I2C
  *     A5 - SCL line for LCD display I2C
