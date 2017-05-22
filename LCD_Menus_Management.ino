@@ -4,7 +4,20 @@ void MainMenu(byte Menu)
   lcd.setCursor(0,0);
   lcd.print(" *** Main Menu ***");
   lcd.setCursor(0,1);
-  lcd.print(" 09:00PM  22/05/16");
+
+  lcd.print(hourFormat12() < 10 ? F(" 0") : F(" "));
+  lcd.print(hourFormat12());
+  lcd.print(minute() < 10 ? F(":0") : F(":"));
+  lcd.print(minute());
+  lcd.print(isAM() ? F("am") : F("pm"));
+  lcd.print("  ");
+  lcd.print(month());
+  lcd.print(F("/"));
+  lcd.print(day());
+  lcd.print(F("/"));
+  lcd.print(year());
+
+  
   lcd.setCursor(0,2);
   lcd.print("Auto Cycle          ");
   lcd.setCursor(0,3);

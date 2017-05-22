@@ -2,37 +2,67 @@
 void receive(const MyMessage &message) {
   // We only expect one type of message from controller. But we better check anyway.
   if (message.isAck()) {
-     Serial.println("This is an ack from gateway");
+     DEBUG_PRINTLN("This is an ack from gateway");
   }
   Rstate = message.getBool();      // Change relay state 
-  /*
-  if (message.type == V_LIGHT && message.sensor == CHILD_ID_Garage_Motor_1 && state == true) {
-       Serial.println("Drive Motor 1");
-//       digitalWrite(Garage_Motor_1, ON);
-       wait(DoorActivationPeriod);
-//       digitalWrite(Garage_Motor_1, OFF);
+
+
+  
+  if (message.type == V_LIGHT && message.sensor == CHILD_ID_Zone_1) {
+       DEBUG_PRINTLN("Drive Relay on Zone 1");
+       digitalWrite(Zone1, !Rstate);
        wait(500);
-       send(msgMotor1.set(false), true);    // After activating the door, move indicator to FALSE again
 
        // Write some debug info
-       Serial.print("Incoming change for sensor:");
-       Serial.print(message.sensor);
-       Serial.print(", New status: ");
-       Serial.println(state);
+       DEBUG_PRINT("Incoming change for sensor:");
+       DEBUG_PRINT(message.sensor);
+       DEBUG_PRINT(", New status: ");
+       DEBUG_PRINTLN(state);
    } 
-   else if (message.type == V_LIGHT && message.sensor == CHILD_ID_Garage_Motor_2 && state == true) {
-       Serial.println("Drive Motor 2");
-//       digitalWrite(Garage_Motor_2, ON);
-       wait(DoorActivationPeriod);
-//       digitalWrite(Garage_Motor_2, OFF);
+   else if (message.type == V_LIGHT && message.sensor == CHILD_ID_Zone_2 ) {
+       DEBUG_PRINTLN("Drive Zone 2");
+       digitalWrite(Zone2, !Rstate);
        wait(500);
-       send(msgMotor2.set(false), true);    // After activating the door, move indicator to FALSE again
+ 
        // Write some debug info
-       Serial.print("Incoming change for sensor:");
-       Serial.print(message.sensor);
-       Serial.print(", New status: ");
-       Serial.println(state);
+       DEBUG_PRINT("Incoming change for sensor:");
+       DEBUG_PRINT(message.sensor);
+       DEBUG_PRINT(", New status: ");
+       DEBUG_PRINTLN(state);
+        }     
+      else if (message.type == V_LIGHT && message.sensor == CHILD_ID_Zone_3 ) {
+       DEBUG_PRINTLN("Drive Zone 2");
+       digitalWrite(Zone3, !Rstate);
+       wait(500);
+ 
+       // Write some debug info
+       DEBUG_PRINT("Incoming change for sensor:");
+       DEBUG_PRINT(message.sensor);
+       DEBUG_PRINT(", New status: ");
+       DEBUG_PRINTLN(state);
+        }  
+
+        else if (message.type == V_LIGHT && message.sensor == CHILD_ID_SPRINKLER && Rstate == true) {
+       DEBUG_PRINTLN("AUTOZONE ********");
+       DEBUG_PRINTLN("AUTOZONE ********");
+       DEBUG_PRINTLN("AUTOZONE ********");
+/*       state=RUN_ALL_ZONES;
+       fastClear(); 
+       DEBUG_PRINTLN("Autozone through internet arrived...");
+       startMillis=millis();
+       ENTERbuttonPushed=false;
+       Run_All_Zones_Menu();
+       RunValve=1;
+       digitalWrite(Zone1, ON);*/
+       wait(500);
+ 
+       // Write some debug info
+       DEBUG_PRINT("Incoming change for sensor:");
+       DEBUG_PRINT(message.sensor);
+       DEBUG_PRINT(", New status: ");
+       DEBUG_PRINTLN(state);
         }
+        /*
      else if (message.type == V_DIMMER && message.sensor == CHILD_ID_PWM) {
           PWMvar = message.getInt();
            }
