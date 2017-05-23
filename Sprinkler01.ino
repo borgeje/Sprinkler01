@@ -394,7 +394,7 @@ void loop()
   value = digitalRead(External_Door);
   if (value ==0) 
          {
-          send(msgDoor1.set(true), true); // Send new state and request ack back
+          send(msgDoor1.set(false), true); // Send new state and request ack back
           DEBUG_PRINT("DOOR:   ");
           DEBUG_PRINTLN(value);
          } 
@@ -404,7 +404,7 @@ void loop()
   LCDMainLoop();                                    // LCD Main handler
 
   value = digitalRead(6);            //Get the update value
-  if (value =1) {
+  if (value =0) {
      send(msgPres.set(value?true:false), true);     // Send new state and request ack back
      DEBUG_PRINT("Presence Sensor - msg to VERA ");
      DEBUG_PRINTLN(value);
@@ -413,15 +413,15 @@ void loop()
   
   wait(500);
  Count_Enter++;
-/* if (Count_Enter >20) 
+ if (Count_Enter >20) 
       {
         send(msgDoor1.set(digitalRead(External_Door)));
         send(msgPres.set(digitalRead(6)));
-        send(msgZone1.set(digitalRead(!Zone1)));
-        send(msgZone2.set(digitalRead(!Zone2)));
-        send(msgZone3.set(digitalRead(!Zone3)));
+        send(msgZone1.set(!digitalRead(Zone1)));
+        send(msgZone2.set(!digitalRead(Zone2)));
+        send(msgZone3.set(!digitalRead(Zone3)));
         Count_Enter=0;
-     }*/
+     }
   DEBUG_PRINT("Menu status: ");
   DEBUG_PRINTLN(state);
   DEBUG_PRINT("                       Count: ");
