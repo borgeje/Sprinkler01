@@ -10,8 +10,9 @@ void receive(const MyMessage &message) {
   
   if (message.type == V_LIGHT && message.sensor == CHILD_ID_Zone_1) {
        DEBUG_PRINTLN("Drive Relay on Zone 1");
-       digitalWrite(Zone1, !Rstate);
-       wait(500);
+       Zone1_Internet_Request = !Rstate;
+       //digitalWrite(Zone1, !Rstate);
+       //wait(500);
 
        // Write some debug info
        DEBUG_PRINT("Incoming change for sensor:");
@@ -21,8 +22,9 @@ void receive(const MyMessage &message) {
    } 
    else if (message.type == V_LIGHT && message.sensor == CHILD_ID_Zone_2 ) {
        DEBUG_PRINTLN("Drive Zone 2");
-       digitalWrite(Zone2, !Rstate);
-       wait(500);
+       Zone2_Internet_Request = !Rstate;
+       //digitalWrite(Zone2, !Rstate);
+       //wait(500);
  
        // Write some debug info
        DEBUG_PRINT("Incoming change for sensor:");
@@ -32,8 +34,9 @@ void receive(const MyMessage &message) {
         }     
       else if (message.type == V_LIGHT && message.sensor == CHILD_ID_Zone_3 ) {
        DEBUG_PRINTLN("Drive Zone 2");
-       digitalWrite(Zone3, !Rstate);
-       wait(500);
+       Zone3_Internet_Request = !Rstate;
+       //digitalWrite(Zone3, !Rstate);
+       //wait(500);
  
        // Write some debug info
        DEBUG_PRINT("Incoming change for sensor:");
@@ -46,14 +49,10 @@ void receive(const MyMessage &message) {
        DEBUG_PRINTLN("AUTOZONE ********");
        DEBUG_PRINTLN("AUTOZONE ********");
        DEBUG_PRINTLN("AUTOZONE ********");
-/*       state=RUN_ALL_ZONES;
-       fastClear(); 
-       DEBUG_PRINTLN("Autozone through internet arrived...");
-       startMillis=millis();
-       ENTERbuttonPushed=false;
-       Run_All_Zones_Menu();
-       RunValve=1;
-       digitalWrite(Zone1, ON);*/
+       state=STAND_BY_ALL_OFF;
+       DOWNbuttonPushed=false;
+       ENTERbuttonPushed=true;
+       MainMenu_Current_State==0;
        wait(500);
  
        // Write some debug info
@@ -62,13 +61,11 @@ void receive(const MyMessage &message) {
        DEBUG_PRINT(", New status: ");
        DEBUG_PRINTLN(state);
         }
-        /*
-     else if (message.type == V_DIMMER && message.sensor == CHILD_ID_PWM) {
-          PWMvar = message.getInt();
-           }
-        else {};*/
+ 
 
 }
+
+
 
 
 

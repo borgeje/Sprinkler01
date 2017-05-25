@@ -99,6 +99,9 @@
 #define CHILD_ID_HUM        5            // iD for humidity reporting
 #define CHILD_ID_Door       6            // iD for External Door sensor
 #define CHILD_ID_Presence   7            // iD for Presence Sensor
+#define CHILD_ID_Zone1_FDBK 8
+#define CHILD_ID_Zone2_FDBK 9
+#define CHILD_ID_Zone3_FDBK 10
 
 // Other Defines
 #define ON 0
@@ -169,6 +172,9 @@ MyMessage msgZone2(CHILD_ID_Zone_2, V_LIGHT);
 MyMessage msgZone3(CHILD_ID_Zone_3, V_LIGHT);
 MyMessage msgDoor1(CHILD_ID_Door,   V_TRIPPED);
 MyMessage msgPres(CHILD_ID_Presence, V_TRIPPED);
+MyMessage msgZone1Status(CHILD_ID_Zone_1, V_TRIPPED);
+MyMessage msgZone2Status(CHILD_ID_Zone_2, V_TRIPPED);
+MyMessage msgZone3Status(CHILD_ID_Zone_3, V_TRIPPED);
 
 //Bounce Debounce_Door = Bounce();        // create instance of debounced button
 //Bounce Debounce_Presence = Bounce();    // Create Instance of debounced PRESENCE SENSOR
@@ -191,6 +197,9 @@ uint8_t nNoUpdatesHum;
 bool metric = true;               // metric or imperial?
 bool Rstate;                      // RELAY STATE 
 //const long DoorActivationPeriod = 600; // [ms]
+bool Zone1_Internet_Request;
+bool Zone2_Internet_Request;
+bool Zone3_Internet_Request;
 
 // LCD RELATED & SPRINKLER OPERATION<<<<<<<<<<<<<<<<<<<
 int Clock_Animation_time=200;
@@ -332,13 +341,13 @@ void presentation()
 {
   sendSketchInfo(SKETCH_NAME, SKETCH_VERSION);   // Send the sketch version information to the gateway and Controller
   Serial.println("Presentation function..");
-  present(CHILD_ID_TEMP, S_TEMP);               // Registar Temperature to gw
-  present(CHILD_ID_HUM, S_HUM);                 // Register Humidity to gw
-  present(CHILD_ID_Door, S_DOOR);               // Register all sensors to gw (they will be created as child devices)
-  present(CHILD_ID_Zone_1, S_BINARY);           // Register all sensors to gw (they will be created as child devices)
-  present(CHILD_ID_Zone_2, S_BINARY);           // Register all sensors to gw (they will be created as child devices)
-  present(CHILD_ID_Zone_3, S_BINARY);           // Register PWM output
-  present(CHILD_ID_Presence, S_MOTION);
+  present(CHILD_ID_TEMP, S_TEMP,"Temperature Base");               // Registar Temperature to gw
+  present(CHILD_ID_HUM, S_HUM,"Humidity Base");                 // Register Humidity to gw
+  present(CHILD_ID_Door, S_DOOR,"External Door");               // Register all sensors to gw (they will be created as child devices)
+  present(CHILD_ID_Zone_1, S_BINARY,"Zone 1", true);           // Register all sensors to gw (they will be created as child devices)
+  present(CHILD_ID_Zone_2, S_BINARY,"Zone2", true);           // Register all sensors to gw (they will be created as child devices)
+  present(CHILD_ID_Zone_3, S_BINARY,"Zone 3", true);           // Register PWM output
+  present(CHILD_ID_Presence, S_MOTION,"Basement Motion");
 //  metric = getConfig().isMetric;              // get configuration from the controller on UNIT system
 
 }
@@ -360,6 +369,7 @@ void loop()
 {
 //  DEBUG_PRINT("Main loop at node: ");
 //  DEBUG_PRINTLN(getNodeId());
+ 
   ReadTemp();                               // Read Temperature and Humidity                                            
 
   
@@ -374,7 +384,6 @@ void loop()
   int value = digitalRead(Arrow_key);
   if (value ==0) 
          {
-          //send(msgDoor1.set(value?true:false), true); // Send new state and request ack back
           DEBUG_PRINT("Arrow Key: function:  ");
           DEBUG_PRINTLN(value);
           oldArrowValue= value;
@@ -384,7 +393,6 @@ void loop()
   value = digitalRead(Enter_key);
   if (value ==0) 
          {
-          //send(msgDoor1.set(value?true:false), true); // Send new state and request ack back
           DEBUG_PRINT("ENTER Key PRESSED:   ");
           DEBUG_PRINTLN(value);
           oldArrowValue= value;
@@ -395,13 +403,14 @@ void loop()
   if (value ==0) 
          {
           send(msgDoor1.set(false), true); // Send new state and request ack back
-          DEBUG_PRINT("DOOR:   ");
-          DEBUG_PRINTLN(value);
          } 
+   DEBUG_PRINTLN("Door: ");
+   DEBUG_PRINTLN(value);
 
 
 
   LCDMainLoop();                                    // LCD Main handler
+  RelayHandler();
 
   value = digitalRead(6);            //Get the update value
   if (value =0) {
@@ -417,9 +426,12 @@ void loop()
       {
         send(msgDoor1.set(digitalRead(External_Door)));
         send(msgPres.set(digitalRead(6)));
-        send(msgZone1.set(!digitalRead(Zone1)));
-        send(msgZone2.set(!digitalRead(Zone2)));
-        send(msgZone3.set(!digitalRead(Zone3)));
+ //       send(msgZone1.set(!digitalRead(Zone1)));
+ //       send(msgZone2.set(!digitalRead(Zone2)));
+ //       send(msgZone3.set(!digitalRead(Zone3)));
+        send(msgZone1Status.set(!digitalRead(Zone1)));
+        send(msgZone2Status.set(!digitalRead(Zone2)));
+        send(msgZone3Status.set(!digitalRead(Zone3)));
         Count_Enter=0;
      }
   DEBUG_PRINT("Menu status: ");
