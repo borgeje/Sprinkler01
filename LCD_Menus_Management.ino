@@ -24,11 +24,12 @@ void MainMenu(byte Menu)
   lcd.print("                   ");
   lcd.setCursor(0,3);
   lcd.print("Z1 _ Z2 _ Z3 _ more_");
-  if (Menu == 0)                lcd.setCursor(12,2);
+  if (Menu == 0)             lcd.setCursor(12,2);
   else if (Menu == 1)        lcd.setCursor(3,3);
     else if (Menu == 2)      lcd.setCursor(8,3);
        else if(Menu == 3)    lcd.setCursor(13,3);
           else if (Menu == 4)    lcd.setCursor(19,3);
+                else DEBUG_PRINT("Q MERDA");
   lcd.write(6);
 }
 

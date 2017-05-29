@@ -3,6 +3,7 @@ void LCDMainLoop()
    switch (state) {
     case STAND_BY_ALL_OFF:
               //        TURN ALL RELAYS OFF!!*******************************************************
+        //DEBUG_PRINT("In standbuy about to check down button  ");
         if (DOWNbuttonPushed)
         {
            if (MainMenu_Current_State == 4)  MainMenu_Current_State = 0;
@@ -12,6 +13,7 @@ void LCDMainLoop()
          }
         else if (ENTERbuttonPushed)
           {
+            //DEBUG_PRINT("In standbuy about to ENTER button  ");
             if (MainMenu_Current_State==0)
               {
                     state=RUN_ALL_ZONES;
@@ -64,7 +66,7 @@ void LCDMainLoop()
                         Zone2_Request=false;
                         Zone3_Request=true;
                       }
-                    else {}
+                    else { MainMenu_Current_State=0;}
                 
           }
       break;
@@ -89,6 +91,8 @@ void LCDMainLoop()
                   lcd.print(":");
                   if (timeRemainingSeconds<10) lcd.print("0");
                   lcd.print(timeRemainingSeconds);
+                  lcd.print("  ");
+                  lcd.write(5);                                   //raindrop icon
                   Serial.print("Time Remaining: ");
                   Serial.print(timeRemaining);
                   Serial.print("    Millis function:  ");
@@ -112,6 +116,9 @@ void LCDMainLoop()
               lcd.print(" ");                                  
             }
             else{
+                  Zone1_Request=true;
+                  Zone2_Request=false;
+                  Zone3_Request=false;
                   timeRemaining = (Zone1TimeAuto-(nowMillis-startMillis));
                   timeRemainingMinutes=timeRemaining/60000;
                   timeRemainingSeconds=(timeRemaining/1000)-(timeRemainingMinutes*60);

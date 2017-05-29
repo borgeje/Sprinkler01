@@ -1,5 +1,6 @@
 void ReadTemp()
 {
+  
   float temperature = dht.getTemperature();    // Get temperature from DHT library
     if (isnan(temperature)) {
     Serial.println("Failed reading temperature from DHT!");
@@ -43,6 +44,7 @@ void ReadTemp()
     // Increase no update counter if the humidity stayed the same
     nNoUpdatesHum++;
     }
+
 }
 
 

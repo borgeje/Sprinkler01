@@ -2,7 +2,7 @@
 void receive(const MyMessage &message) {
   // We only expect one type of message from controller. But we better check anyway.
   if (message.isAck()) {
-     DEBUG_PRINTLN("This is an ack from gateway");
+     //DEBUG_PRINTLN("This is an ack from gateway");
   }
   Rstate = message.getBool();      // Change relay state 
 
@@ -23,10 +23,13 @@ void receive(const MyMessage &message) {
                   ENTERbuttonPushed=false;
                   state=STAND_BY_ALL_OFF;
                   MainMenu_Current_State=0;
+                  Zone1_Request=0;
+                  fastClear();
+                  MainMenu(MainMenu_Current_State);
                 }
 
        // Write some debug info
-       DEBUG_PRINT(ICS);                  // "Incoming change for sensor:"
+       DEBUG_PRINT("                  ........ Incoming Change for Sensor: ");                  // "Incoming change for sensor:"
        DEBUG_PRINT(message.sensor);
        DEBUG_PRINT(NS);
        DEBUG_PRINT(Rstate);
@@ -47,10 +50,13 @@ void receive(const MyMessage &message) {
                   ENTERbuttonPushed=false;
                   state=STAND_BY_ALL_OFF;
                   MainMenu_Current_State=0;
+                  Zone2_Request=0;
+                  fastClear();
+                  MainMenu(MainMenu_Current_State);
                 } 
  
        // Write some debug info
-       DEBUG_PRINT(ICS);  // "Incoming change for sensor:"
+       DEBUG_PRINT("                  ........ Incoming Change for Sensor: ");  // "Incoming change for sensor:"
        DEBUG_PRINT(message.sensor);
        DEBUG_PRINT(NS);
        DEBUG_PRINTLN(Rstate);
@@ -70,6 +76,9 @@ void receive(const MyMessage &message) {
                   ENTERbuttonPushed=false;
                   state=STAND_BY_ALL_OFF;
                   MainMenu_Current_State=0;
+                  Zone3_Request=0;
+                  fastClear();
+                  MainMenu(MainMenu_Current_State);
                 } 
  
        // Write some debug info
@@ -79,14 +88,14 @@ void receive(const MyMessage &message) {
        DEBUG_PRINTLN(Rstate);
         }  
 
-        else if (message.type == V_LIGHT && message.sensor == CHILD_ID_SPRINKLER && Rstate == true) 
+        else if (message.type == V_LIGHT && message.sensor == CHILD_ID_SPRINKLER ) 
             {
                 DEBUG_PRINTLN("AUTOZONE ********");
                 DEBUG_PRINTLN("AUTOZONE ********");
                 DEBUG_PRINTLN("AUTOZONE ********");
                 if (Rstate)
                     {
-                        MainMenu_Current_State=2;
+                        MainMenu_Current_State=0;
                         DOWNbuttonPushed=false;
                         ENTERbuttonPushed=true;
                         state=STAND_BY_ALL_OFF;
@@ -97,6 +106,11 @@ void receive(const MyMessage &message) {
                           ENTERbuttonPushed=false;
                           state=STAND_BY_ALL_OFF;
                           MainMenu_Current_State=0;
+                          Zone1_Request=0;
+                          Zone2_Request=0;
+                          Zone3_Request=0;
+                          fastClear();
+                          MainMenu(MainMenu_Current_State);
                           } 
  
        // Write some debug info

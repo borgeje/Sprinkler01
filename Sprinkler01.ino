@@ -45,7 +45,7 @@
 //#define MY_DEBUG                  // Enable debug prints to serial monitor
 #define MY_RADIO_NRF24            // Enable and select radio type attached
 #define MY_REPEATER_FEATURE       // Enabled repeater feature for this node
-#define DEBUG_ON   // comment out to supress serial monitor output
+#define DEBUG_OFF   // comment out to supress serial monitor output
 #ifdef DEBUG_ON
 #define DEBUG_PRINT(x)   Serial.print(x)
 #define DEBUG_PRINTLN(x) Serial.println(x)
@@ -85,13 +85,13 @@
 
 // Project DEFINITIONS
 #define SKETCH_NAME "MySprinkler - Joao Borges"
-#define SKETCH_VERSION "1.0"
+#define SKETCH_VERSION "1.2"
 #define NUMBER_OF_VALVES 3            // Change this to set your valve count up to 16.
 #define VALVE_RESET_TIME 7500UL       // Change this (in milliseconds) for the time you need your valves to hydraulically reset and change state
 #define VALVE_TIMES_RELOAD 300000UL   // Change this (in milliseconds) for how often to update all valves data from the controller (Loops at value/number valves)
                                       // ie: 300000 for 8 valves produces requests 37.5seconds with all valves updated every 5mins 
                                       // Node Childs (all individual iDs for each IO)
-#define CHILD_ID_SPRINKLER  0         // MODE SELECTION 
+#define CHILD_ID_SPRINKLER  11         // MODE SELECTION 
 #define CHILD_ID_Zone_1     1            // Zone 1 relay
 #define CHILD_ID_Zone_2     2            // Zone 2 relay
 #define CHILD_ID_Zone_3     3            // Zone 3 relay
@@ -166,7 +166,7 @@ byte MainMenu_Current_State = 0;       // 0 is Run all, 1= zone1, 2=zone2, 3= zo
 
 // Some additional definitons and INSTANCES creation
 MyMessage msgSprinklerAUTO(CHILD_ID_SPRINKLER, V_LIGHT);
-MyMessage msgSprinklerMode(CHILD_ID_SPRINKLER, V_VAR1);
+//MyMessage msgSprinklerMode(CHILD_ID_SPRINKLER, V_VAR1);
 MyMessage msgTemp(CHILD_ID_TEMP,    V_TEMP);
 MyMessage msgHum(CHILD_ID_HUM,      V_HUM);
 MyMessage msgZone1(CHILD_ID_Zone_1, V_LIGHT);
@@ -174,9 +174,9 @@ MyMessage msgZone2(CHILD_ID_Zone_2, V_LIGHT);
 MyMessage msgZone3(CHILD_ID_Zone_3, V_LIGHT);
 MyMessage msgDoor1(CHILD_ID_Door,   V_TRIPPED);
 MyMessage msgPres(CHILD_ID_Presence, V_TRIPPED);
-MyMessage msgZone1Status(CHILD_ID_Zone_1, V_TRIPPED);
-MyMessage msgZone2Status(CHILD_ID_Zone_2, V_TRIPPED);
-MyMessage msgZone3Status(CHILD_ID_Zone_3, V_TRIPPED);
+MyMessage msgZone1Status(CHILD_ID_Zone1_FDBK, V_TRIPPED);
+MyMessage msgZone2Status(CHILD_ID_Zone2_FDBK, V_TRIPPED);
+MyMessage msgZone3Status(CHILD_ID_Zone3_FDBK, V_TRIPPED);
 
 DHT dht;                                // Creating instance of DHT
 
@@ -224,10 +224,10 @@ int Count_Enter=0;
 
 
 //Flashmap
-unsigned long SINGLEVALVETIME=10000;   // 10 minutes * 60 *1000 time in milliseconds
-unsigned long Zone1TimeAuto = 11000;
-unsigned long Zone2TimeAuto = 9000;
-unsigned long Zone3TimeAuto = 5000;
+unsigned long SINGLEVALVETIME=600000;   // 10 minutes * 60 *1000 time in milliseconds
+unsigned long Zone1TimeAuto = 1200000;
+unsigned long Zone2TimeAuto = 600000;
+unsigned long Zone3TimeAuto = 1200000;
 unsigned long lastDebounceTime = 0;
 int RunValve = 1;
 unsigned long SINGLEVALVETIMERELATIMEOUT=1200000;   // 30 minutes * 60 *1000 time in milliseconds
@@ -328,11 +328,25 @@ void setup()
   Zone1_Request=false;
   Zone2_Request=false;
   Zone3_Request=false;
+  MainMenu_Current_State=0;
+  state=STAND_BY_ALL_OFF;
   MainMenu(MainMenu_Current_State);
   wait(5000);
   oldPresenceValue=0;
   DOWNbuttonPushed=false;
   ENTERbuttonPushed=false;
+  send(msgDoor1.set(false));
+  send(msgPres.set(false));
+  send(msgZone1Status.set(false));
+  send(msgZone2Status.set(false));
+  send(msgZone3Status.set(false));
+  send(msgZone1.set(false));
+  send(msgZone2.set(false));
+  send(msgZone3.set(false));
+  MainMenu_Current_State=0;
+  wait(1000);
+  
+  
 }
 
 
@@ -347,15 +361,18 @@ void presentation()
 {
   sendSketchInfo(SKETCH_NAME, SKETCH_VERSION);   // Send the sketch version information to the gateway and Controller
   Serial.println("Presentation function..");
+  present(CHILD_ID_SPRINKLER, S_BINARY);
   present(CHILD_ID_TEMP, S_TEMP,"Temperature Base");               // Registar Temperature to gw
   present(CHILD_ID_HUM, S_HUM,"Humidity Base");                 // Register Humidity to gw
   present(CHILD_ID_Door, S_DOOR,"External Door");               // Register all sensors to gw (they will be created as child devices)
   present(CHILD_ID_Zone_1, S_BINARY,"Zone 1", true);           // Register all sensors to gw (they will be created as child devices)
   present(CHILD_ID_Zone_2, S_BINARY,"Zone2", true);           // Register all sensors to gw (they will be created as child devices)
   present(CHILD_ID_Zone_3, S_BINARY,"Zone 3", true);           // Register PWM output
-  present(CHILD_ID_Presence, S_MOTION,"Basement Motion");
-//  metric = getConfig().isMetric;              // get configuration from the controller on UNIT system
-
+  present(CHILD_ID_Presence, S_DOOR,"Basement Motion");
+  present(CHILD_ID_Zone1_FDBK, S_BINARY,"Zone 1 Feedback", true);
+  present(CHILD_ID_Zone2_FDBK, S_BINARY,"Zone 2 Feedback", true) ; 
+  present(CHILD_ID_Zone3_FDBK, S_BINARY,"Zone 3 Feedback", true);
+ 
 }
 
 
@@ -373,32 +390,33 @@ void presentation()
 *****************/
 void loop() 
 {
-  DEBUG_PRINT("Main loop at node: ");
-  DEBUG_PRINT(getNodeId());
-  DEBUG_PRINT("  >>  Presence reading: ");
-  DEBUG_PRINT(oldPresenceValue);
-  DEBUG_PRINT(" >>  DownButton reading: ");
-  DEBUG_PRINT(DOWNbuttonPushed);
-  DEBUG_PRINT(" >>  ENTERnButton reading: ");
-  DEBUG_PRINTLN(ENTERbuttonPushed);
+  DEBUG_PRINT("Main menu current state: ");
+  DEBUG_PRINT(MainMenu_Current_State);
+//  DEBUG_PRINT(getNodeId());
+//  DEBUG_PRINT("  >>  Presence reading: ");
+//  DEBUG_PRINT(oldPresenceValue);
+//  DEBUG_PRINT(" >>  DownButton reading: ");
+//  DEBUG_PRINT(DOWNbuttonPushed);
+//  DEBUG_PRINT(" >>  ENTERnButton reading: ");
+//  DEBUG_PRINT(ENTERbuttonPushed);
                                         
   int value = digitalRead(Arrow_key);
   if (value ==0) 
          {
-          DEBUG_PRINT("Arrow Key: function:  ");
-          DEBUG_PRINTLN(value);
+          DEBUG_PRINT("Arrow Key:  ");
+          DEBUG_PRINT(value);
           oldArrowValue= value;
           DOWNbuttonPushed =true;
-         } 
+         } else DEBUG_PRINT(" no arrow");
 
   value = digitalRead(Enter_key);
   if (value ==0) 
          {
           DEBUG_PRINT("ENTER Key PRESSED:   ");
-          DEBUG_PRINTLN(value);
+          DEBUG_PRINT(value);
           oldArrowValue= value;
           ENTERbuttonPushed = true;
-         } 
+         } else DEBUG_PRINT(" no enter");
  
   value = digitalRead(External_Door);
   if (value ==0) 
@@ -406,21 +424,22 @@ void loop()
           send(msgDoor1.set(false), true); // Send new state and request ack back
          } 
    DEBUG_PRINT("Door Open: ");
-   DEBUG_PRINTLN(value);
+   DEBUG_PRINT(value);
 
 
   ReadTemp();                               // Read Temperature and Humidity      
   RelayHandler();
   LCDMainLoop();                                    // LCD Main handler
-
+//  updateClock();
+/*
   value = digitalRead(Presence_Sensor);            //Get the update value
   if (value == 0) {
      send(msgPres.set(value?true:false), true);     // Send new state and request ack back
-     DEBUG_PRINT("Presence Sensor - msg to VERA ");
-     DEBUG_PRINTLN(value);
+     DEBUG_PRINT("  Presence Sensor - msg to VERA ");
+     DEBUG_PRINT(value);
     }
   oldPresenceValue = value;
-  
+ */ 
  wait(500);
  Count_Enter++;
  if (Count_Enter >20) 
@@ -432,9 +451,11 @@ void loop()
         send(msgZone3Status.set(!digitalRead(Zone3)));
         Count_Enter=0;
      }
-  DEBUG_PRINT("Menu status: ");
+  DEBUG_PRINT(" Zone1: ");
+  DEBUG_PRINT(digitalRead(Zone1));
+  DEBUG_PRINT("  Menu status: ");
   DEBUG_PRINT(state);
-  DEBUG_PRINT("                       Count: ");
+  DEBUG_PRINT("   Count: ");
   DEBUG_PRINTLN(Count_Enter);
 } 
 
