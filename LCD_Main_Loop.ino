@@ -2,6 +2,7 @@ void LCDMainLoop()
 {
    switch (state) {
     case STAND_BY_ALL_OFF:
+              //        TURN ALL RELAYS OFF!!*******************************************************
         if (DOWNbuttonPushed)
         {
            if (MainMenu_Current_State == 4)  MainMenu_Current_State = 0;
@@ -19,7 +20,9 @@ void LCDMainLoop()
                     ENTERbuttonPushed=false;
                     Run_All_Zones_Menu();
                     RunValve=1;
-                    //Turn Relay 1 on
+                    Zone1_Request=true;
+                    Zone2_Request=false;
+                    Zone3_Request=false;
               }
               else if(MainMenu_Current_State==1)             
                 {
@@ -30,6 +33,9 @@ void LCDMainLoop()
                     timeRemaining=SINGLEVALVETIME;
                     startMillis=millis();
                     ENTERbuttonPushed=false;
+                    Zone1_Request=true;
+                    Zone2_Request=false;
+                    Zone3_Request=false;
                 }
                 else if(MainMenu_Current_State==2)
                     {
@@ -40,6 +46,10 @@ void LCDMainLoop()
                       timeRemaining=SINGLEVALVETIME;
                       startMillis=millis();
                       ENTERbuttonPushed=false;
+                      Zone1_Request=false;
+                      Zone2_Request=true;
+                      Zone3_Request=false;
+                      
                     }
                   else if(MainMenu_Current_State==3)
                       {
@@ -50,6 +60,9 @@ void LCDMainLoop()
                         timeRemaining=SINGLEVALVETIME;
                         startMillis=millis();
                         ENTERbuttonPushed=false;
+                        Zone1_Request=false;
+                        Zone2_Request=false;
+                        Zone3_Request=true;
                       }
                     else {}
                 
@@ -60,7 +73,9 @@ void LCDMainLoop()
           nowMillis = millis();
           if ((nowMillis-startMillis)>SINGLEVALVETIME)
             {
-              //Turn_Relay_Off
+              Zone1_Request=false;
+              Zone2_Request=false;
+              Zone3_Request=false;
               state=STAND_BY_ALL_OFF;
               MainMenu_Current_State=0;
               MainMenu(MainMenu_Current_State);
@@ -88,11 +103,13 @@ void LCDMainLoop()
           {
             if ((nowMillis-startMillis)>Zone1TimeAuto)
             {
-              // TURN RELAY 1 off and TURN RELAY 2 ON
+              Zone1_Request=false;
+              Zone2_Request=true;
+              Zone3_Request=false;
               RunValve=2;
               startMillis=millis();
               lcd.setCursor (18,1);
-              lcd.print(" ");                                   //raindrop icon
+              lcd.print(" ");                                  
             }
             else{
                   timeRemaining = (Zone1TimeAuto-(nowMillis-startMillis));
@@ -117,7 +134,9 @@ void LCDMainLoop()
           if(RunValve==2) {
             if ((nowMillis-startMillis)>Zone2TimeAuto)
             {
-              // TURN RELAY 2 off and TURN RELAY 3 ON
+              Zone1_Request=false;
+              Zone2_Request=false;
+              Zone3_Request=true;
               RunValve=3;
               startMillis=millis();
               lcd.setCursor (18,2);
@@ -143,7 +162,9 @@ void LCDMainLoop()
           } else if(RunValve==3) {
                 if ((nowMillis-startMillis)>Zone3TimeAuto)
                 {
-                  // TURN RELAY 2 off and TURN RELAY 3 ON
+                  Zone1_Request=false;
+                  Zone2_Request=false;
+                  Zone3_Request=false;
                   RunValve=1;
                   startMillis=millis();
                   state=STAND_BY_ALL_OFF;
@@ -184,5 +205,20 @@ void LCDMainLoop()
     else if (0==0)
     {
     }
+}
+
+
+void updateClock()
+{
+  static unsigned long lastVeraGetTime;
+  if (millis() - lastVeraGetTime >= 3600000UL) // updates clock time and gets zone times from vera once every hour
+  {
+    DEBUG_PRINTLN(F("Requesting time and valve data from Gateway..."));
+    lcd.setCursor(15, 0);
+    lcd.write(byte(0));
+//    clockUpdating = true;
+    requestTime();
+    lastVeraGetTime = millis();
+  }
 }
 

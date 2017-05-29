@@ -10,50 +10,94 @@ void receive(const MyMessage &message) {
   
   if (message.type == V_LIGHT && message.sensor == CHILD_ID_Zone_1) {
        DEBUG_PRINTLN("Drive Relay on Zone 1");
-       Zone1_Internet_Request = !Rstate;
-       //digitalWrite(Zone1, !Rstate);
-       //wait(500);
+       if (Rstate)
+            {
+                  MainMenu_Current_State=1;
+                  DOWNbuttonPushed=false;
+                  ENTERbuttonPushed=true;
+                  state=STAND_BY_ALL_OFF;
+            } else
+                {
+                  MainMenu_Current_State=0;
+                  DOWNbuttonPushed=false;
+                  ENTERbuttonPushed=false;
+                  state=STAND_BY_ALL_OFF;
+                  MainMenu_Current_State=0;
+                }
 
        // Write some debug info
-       DEBUG_PRINT("Incoming change for sensor:");
+       DEBUG_PRINT(ICS);                  // "Incoming change for sensor:"
        DEBUG_PRINT(message.sensor);
-       DEBUG_PRINT(", New status: ");
-       DEBUG_PRINTLN(state);
+       DEBUG_PRINT(NS);
+       DEBUG_PRINT(Rstate);
+
    } 
    else if (message.type == V_LIGHT && message.sensor == CHILD_ID_Zone_2 ) {
        DEBUG_PRINTLN("Drive Zone 2");
-       Zone2_Internet_Request = !Rstate;
-       //digitalWrite(Zone2, !Rstate);
-       //wait(500);
+       if (Rstate)
+            {
+                  MainMenu_Current_State=2;
+                  DOWNbuttonPushed=false;
+                  ENTERbuttonPushed=true;
+                  state=STAND_BY_ALL_OFF;
+            } else
+                {
+                  MainMenu_Current_State=0;
+                  DOWNbuttonPushed=false;
+                  ENTERbuttonPushed=false;
+                  state=STAND_BY_ALL_OFF;
+                  MainMenu_Current_State=0;
+                } 
  
        // Write some debug info
-       DEBUG_PRINT("Incoming change for sensor:");
+       DEBUG_PRINT(ICS);  // "Incoming change for sensor:"
        DEBUG_PRINT(message.sensor);
-       DEBUG_PRINT(", New status: ");
-       DEBUG_PRINTLN(state);
+       DEBUG_PRINT(NS);
+       DEBUG_PRINTLN(Rstate);
         }     
       else if (message.type == V_LIGHT && message.sensor == CHILD_ID_Zone_3 ) {
-       DEBUG_PRINTLN("Drive Zone 2");
-       Zone3_Internet_Request = !Rstate;
-       //digitalWrite(Zone3, !Rstate);
-       //wait(500);
+       DEBUG_PRINTLN("Drive Zone 3");
+       if (Rstate)
+            {
+                  MainMenu_Current_State=3;
+                  DOWNbuttonPushed=false;
+                  ENTERbuttonPushed=true;
+                  state=STAND_BY_ALL_OFF;
+            } else
+                {
+                  MainMenu_Current_State=0;
+                  DOWNbuttonPushed=false;
+                  ENTERbuttonPushed=false;
+                  state=STAND_BY_ALL_OFF;
+                  MainMenu_Current_State=0;
+                } 
  
        // Write some debug info
-       DEBUG_PRINT("Incoming change for sensor:");
+       DEBUG_PRINT(ICS); //"Incoming change for sensor:"
        DEBUG_PRINT(message.sensor);
-       DEBUG_PRINT(", New status: ");
-       DEBUG_PRINTLN(state);
+       DEBUG_PRINT(NS);
+       DEBUG_PRINTLN(Rstate);
         }  
 
-        else if (message.type == V_LIGHT && message.sensor == CHILD_ID_SPRINKLER && Rstate == true) {
-       DEBUG_PRINTLN("AUTOZONE ********");
-       DEBUG_PRINTLN("AUTOZONE ********");
-       DEBUG_PRINTLN("AUTOZONE ********");
-       state=STAND_BY_ALL_OFF;
-       DOWNbuttonPushed=false;
-       ENTERbuttonPushed=true;
-       MainMenu_Current_State==0;
-       wait(500);
+        else if (message.type == V_LIGHT && message.sensor == CHILD_ID_SPRINKLER && Rstate == true) 
+            {
+                DEBUG_PRINTLN("AUTOZONE ********");
+                DEBUG_PRINTLN("AUTOZONE ********");
+                DEBUG_PRINTLN("AUTOZONE ********");
+                if (Rstate)
+                    {
+                        MainMenu_Current_State=2;
+                        DOWNbuttonPushed=false;
+                        ENTERbuttonPushed=true;
+                        state=STAND_BY_ALL_OFF;
+                    } else
+                          {
+                          MainMenu_Current_State=0;
+                          DOWNbuttonPushed=false;
+                          ENTERbuttonPushed=false;
+                          state=STAND_BY_ALL_OFF;
+                          MainMenu_Current_State=0;
+                          } 
  
        // Write some debug info
        DEBUG_PRINT("Incoming change for sensor:");
@@ -100,4 +144,6 @@ void receiveTime(time_t newTime)
  // }
 //  clockUpdating = false;
 }
+
+
 

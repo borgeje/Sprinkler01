@@ -103,10 +103,12 @@
 #define CHILD_ID_Zone2_FDBK 9
 #define CHILD_ID_Zone3_FDBK 10
 
+
 // Other Defines
 #define ON 0
 #define OFF 1
-
+#define NS ", New status: "
+#define ICS "Incoming change for sensor:"
 
 //LCD RELATED
 LiquidCrystal_I2C lcd(0x3F,20,4);  // set the LCD address to 0x27 for a 16 chars and 2 line display
@@ -176,10 +178,6 @@ MyMessage msgZone1Status(CHILD_ID_Zone_1, V_TRIPPED);
 MyMessage msgZone2Status(CHILD_ID_Zone_2, V_TRIPPED);
 MyMessage msgZone3Status(CHILD_ID_Zone_3, V_TRIPPED);
 
-//Bounce Debounce_Door = Bounce();        // create instance of debounced button
-//Bounce Debounce_Presence = Bounce();    // Create Instance of debounced PRESENCE SENSOR
-//Bounce Debounce_Arrow  = Bounce();      // create instance of debounced button
-//Bounce Debounce_Enter = Bounce();       // create instance of debounced button
 DHT dht;                                // Creating instance of DHT
 
 
@@ -197,17 +195,27 @@ uint8_t nNoUpdatesHum;
 bool metric = true;               // metric or imperial?
 bool Rstate;                      // RELAY STATE 
 //const long DoorActivationPeriod = 600; // [ms]
-bool Zone1_Internet_Request;
-bool Zone2_Internet_Request;
-bool Zone3_Internet_Request;
+bool Zone1_Request=false;
+bool Zone2_Request=false;
+bool Zone3_Request=false;
 
 // LCD RELATED & SPRINKLER OPERATION<<<<<<<<<<<<<<<<<<<
 int Clock_Animation_time=200;
 unsigned long nowMillis;
+unsigned long nowMillis1;
+unsigned long nowMillis2;
+unsigned long nowMillis3;
+
 unsigned long startMillis;
+unsigned long startMillis1;
+unsigned long startMillis2;
+unsigned long startMillis3;
 unsigned long timeRemaining;          // Time remaining for a given valve
 unsigned long timeRemainingMinutes;   // Time remaining in minutes
 unsigned long timeRemainingSeconds;   // Time remaining seconds
+
+
+
 bool DOWNbuttonPushed = false;
 bool ENTERbuttonPushed = false;
 int Count_Door=0;
@@ -222,9 +230,11 @@ unsigned long Zone2TimeAuto = 9000;
 unsigned long Zone3TimeAuto = 5000;
 unsigned long lastDebounceTime = 0;
 int RunValve = 1;
+unsigned long SINGLEVALVETIMERELATIMEOUT=1200000;   // 30 minutes * 60 *1000 time in milliseconds
 
 //others
 #define VALVE_RESET_TIME 7500UL 
+
 
 
 
@@ -242,29 +252,22 @@ void setup()
   // INPUTS //
   pinMode(External_Door,INPUT);                 // Setup Doors as InPUTS
   digitalWrite(External_Door,HIGH);             // Activate internal pull-up
-//  Debounce_Door.attach(External_Door);         // After setting up the button, setup debouncer
-//  Debounce_Door.interval(1);
   pinMode(Enter_key,INPUT);                     // Setup Doors as Inputs
   digitalWrite(Enter_key,HIGH);                 // Activate internal pull-up
-//  Debounce_Enter.attach(Enter_Key);             // After setting up the button, setup debouncer
-//  Debounce_Enter.interval(1);
   pinMode(Arrow_key,INPUT);                     // Setup Doors as Inputs
   digitalWrite(Arrow_key,HIGH);                 // Activate internal pull-up
-//  Debounce_Arrow.attach(Arrow_key);             // After setting up the button, setup debouncer
-//  Debounce_Arrow.interval(1);
   pinMode(Presence_Sensor, INPUT);               // Setup Doors as Inputs
   digitalWrite(Presence_Sensor,HIGH);           // Activate internal pull-up
-//  Debounce_Arrow.attach(Presence_Sensor);       // After setting up the button, setup debouncer
-//  Debounce_Arrow.interval(1);
+
   
 
   // OUTPUTS  //
-  digitalWrite(Zone1, OFF);                     // Make sure Motor is off at startup
-  pinMode(Zone1, OUTPUT);                       // Then set Motor pins in output mode
-  digitalWrite(Zone2, OFF);                     // Make sure Motor is off at startup
-  pinMode(Zone2, OUTPUT);                       // Then set Motor pins in output mode
-  digitalWrite(Zone3, OFF);                     // Make sure Motor is off at startup
-  pinMode(Zone3, OUTPUT);                       // Then set Motor pins in output mode
+  digitalWrite(Zone1, OFF);                     // Make sure Zone1 is off at startup
+  pinMode(Zone1, OUTPUT);                       // Then set Zone1 pins in output mode
+  digitalWrite(Zone2, OFF);                     // Make sure Zone2 is off at startup
+  pinMode(Zone2, OUTPUT);                       // Then set Zone2 pins in output mode
+  digitalWrite(Zone3, OFF);                     // Make sure Zone3 is off at startup
+  pinMode(Zone3, OUTPUT);                       // Then set Zone3 pins in output mode
   dht.setup(DHT_DATA_PIN);                      // set data pin of DHT sensors
   
   //LCD  //
@@ -322,6 +325,9 @@ void setup()
   digitalWrite(Zone1, OFF);                     // Make sure Relay is off at startup
   digitalWrite(Zone2, OFF);                     // Make sure Relay is off at startup
   digitalWrite(Zone3, OFF);                     // Make sure Relay is off at startup
+  Zone1_Request=false;
+  Zone2_Request=false;
+  Zone3_Request=false;
   MainMenu(MainMenu_Current_State);
   wait(5000);
   oldPresenceValue=0;
@@ -367,20 +373,15 @@ void presentation()
 *****************/
 void loop() 
 {
-//  DEBUG_PRINT("Main loop at node: ");
-//  DEBUG_PRINTLN(getNodeId());
- 
-  ReadTemp();                               // Read Temperature and Humidity                                            
-
-  
-  DEBUG_PRINT("     >>  Presence reading: ");
-  DEBUG_PRINTLN(oldPresenceValue);
-  DEBUG_PRINT("     >>  DownButton reading: ");
-  DEBUG_PRINTLN(DOWNbuttonPushed);
-  DEBUG_PRINT("     >>  ENTERnButton reading: ");
+  DEBUG_PRINT("Main loop at node: ");
+  DEBUG_PRINT(getNodeId());
+  DEBUG_PRINT("  >>  Presence reading: ");
+  DEBUG_PRINT(oldPresenceValue);
+  DEBUG_PRINT(" >>  DownButton reading: ");
+  DEBUG_PRINT(DOWNbuttonPushed);
+  DEBUG_PRINT(" >>  ENTERnButton reading: ");
   DEBUG_PRINTLN(ENTERbuttonPushed);
-
-
+                                        
   int value = digitalRead(Arrow_key);
   if (value ==0) 
          {
@@ -404,38 +405,35 @@ void loop()
          {
           send(msgDoor1.set(false), true); // Send new state and request ack back
          } 
-   DEBUG_PRINTLN("Door: ");
+   DEBUG_PRINT("Door Open: ");
    DEBUG_PRINTLN(value);
 
 
-
-  LCDMainLoop();                                    // LCD Main handler
+  ReadTemp();                               // Read Temperature and Humidity      
   RelayHandler();
+  LCDMainLoop();                                    // LCD Main handler
 
-  value = digitalRead(6);            //Get the update value
-  if (value =0) {
+  value = digitalRead(Presence_Sensor);            //Get the update value
+  if (value == 0) {
      send(msgPres.set(value?true:false), true);     // Send new state and request ack back
      DEBUG_PRINT("Presence Sensor - msg to VERA ");
      DEBUG_PRINTLN(value);
     }
   oldPresenceValue = value;
   
-  wait(500);
+ wait(500);
  Count_Enter++;
  if (Count_Enter >20) 
       {
         send(msgDoor1.set(digitalRead(External_Door)));
-        send(msgPres.set(digitalRead(6)));
- //       send(msgZone1.set(!digitalRead(Zone1)));
- //       send(msgZone2.set(!digitalRead(Zone2)));
- //       send(msgZone3.set(!digitalRead(Zone3)));
+        send(msgPres.set(digitalRead(Presence_Sensor)));
         send(msgZone1Status.set(!digitalRead(Zone1)));
         send(msgZone2Status.set(!digitalRead(Zone2)));
         send(msgZone3Status.set(!digitalRead(Zone3)));
         Count_Enter=0;
      }
   DEBUG_PRINT("Menu status: ");
-  DEBUG_PRINTLN(state);
+  DEBUG_PRINT(state);
   DEBUG_PRINT("                       Count: ");
   DEBUG_PRINTLN(Count_Enter);
 } 
