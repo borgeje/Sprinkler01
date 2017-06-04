@@ -61,7 +61,20 @@ void RelayHandler()
         
         } else digitalWrite(Zone3, OFF);
 
-
+  if (Light_Request)
+       {
+        digitalWrite(Light_Basement, ON);
+        startMillisLight = millis();
+        Light_Request=false;
+       } else 
+       {
+        nowMillisLight = millis();
+        if ((nowMillisLight-startMillisLight)>600000)
+          {
+            digitalWrite(Light_Basement, OFF);
+          } 
+       }
+      
 
 }
 

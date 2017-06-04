@@ -74,7 +74,7 @@
 #define Zone1 2                           // Relay setting for Zone 1 to 4
 #define Zone2 3
 #define Zone3 4
-#define Zone4 5
+#define Light_Basement 5
 #define Presence_Sensor 6
 #define DHT_DATA_PIN 7                    // Set this to the pin you connected the DHT's data pin to
 #define Arrow_key 8
@@ -198,6 +198,7 @@ bool Rstate;                      // RELAY STATE
 bool Zone1_Request=false;
 bool Zone2_Request=false;
 bool Zone3_Request=false;
+bool Light_Request=false;
 
 // LCD RELATED & SPRINKLER OPERATION<<<<<<<<<<<<<<<<<<<
 int Clock_Animation_time=200;
@@ -205,11 +206,13 @@ unsigned long nowMillis;
 unsigned long nowMillis1;
 unsigned long nowMillis2;
 unsigned long nowMillis3;
+unsigned long nowMillisLight;
 
 unsigned long startMillis;
 unsigned long startMillis1;
 unsigned long startMillis2;
 unsigned long startMillis3;
+unsigned long startMillisLight;
 unsigned long timeRemaining;          // Time remaining for a given valve
 unsigned long timeRemainingMinutes;   // Time remaining in minutes
 unsigned long timeRemainingSeconds;   // Time remaining seconds
@@ -445,12 +448,23 @@ void loop()
  if (Count_Enter >20) 
       {
         send(msgDoor1.set(digitalRead(External_Door)));
-        send(msgPres.set(digitalRead(Presence_Sensor)));
-        send(msgZone1Status.set(!digitalRead(Zone1)));
-        send(msgZone2Status.set(!digitalRead(Zone2)));
         send(msgZone3Status.set(!digitalRead(Zone3)));
         Count_Enter=0;
-     }
+     } else if(Count_Enter == 5) 
+          {
+              value=digitalRead(Presence_Sensor);
+              send(msgPres.set(value));
+              if (value==0) Light_Request = true;
+          } else if(Count_Enter == 10)
+              {
+                  send(msgZone1Status.set(!digitalRead(Zone1)));
+                  send(msgDoor1.set(digitalRead(External_Door)));
+              } else if(Count_Enter == 15)
+                  {
+                    send(msgZone2Status.set(!digitalRead(Zone2)));
+                    send(msgPres.set(digitalRead(Presence_Sensor)));
+                  }
+                  
   DEBUG_PRINT(" Zone1: ");
   DEBUG_PRINT(digitalRead(Zone1));
   DEBUG_PRINT("  Menu status: ");
